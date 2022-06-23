@@ -1,60 +1,202 @@
 <template>
   <div id="app">
-    <img src="./assets/logo.png">
-    <h1>{{ msg }}</h1>
-    <h2>Essential Links</h2>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank">Twitter</a></li>
-    </ul>
-    <h2>Ecosystem</h2>
-    <ul>
-      <li><a href="http://router.vuejs.org/" target="_blank">vue-router</a></li>
-      <li><a href="http://vuex.vuejs.org/" target="_blank">vuex</a></li>
-      <li><a href="http://vue-loader.vuejs.org/" target="_blank">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
-    </ul>
+    <br />
+    <div class="centerMe">
+      <input
+        type="text"
+        name="test"
+        id="testMe"
+        placeholder="first name"
+        v-model="firstName"
+      />
+      <div v-if="firstNameEmpty" class="centerMe">
+        Please enter first name
+      </div>
+      <br />
+      <input
+        type="text"
+        name="test"
+        id="testMe1"
+        placeholder="last name"
+        v-model="lastName"
+      />
+      <div v-if="lastNameEmpty" class="centerMe">
+        Please enter last name
+      </div>
+      <br />
+      <input
+        type="email"
+        name="test"
+        id="testMe2"
+        placeholder="email"
+        @click="clickInEmail"
+        v-model="email"
+      />
+      <div v-if="!emailContainsAtDot" class="centerMe">
+        Please enter proper email
+      </div>
+      <br />
+
+      <button
+        type="submit"
+        :disabled="!emailContainsAtDot || firstNameEmpty || lastNameEmpty"
+        @click="registerUser"
+      >
+        Register
+      </button>
+    </div>
+    <br />
+
+    <div v-if="responseBad" class="centerMe red">
+      Email already exists
+    </div>
+
+    <div v-if="successRegister" class="centerMe green">
+      Success!
+    </div>
+    <div class="centerMe">
+      <br />
+      <p class="centerMe">
+        Search for users by first name, last name or email address
+      </p>
+
+      <br />
+      <div class="flexMe">
+        <input
+          type="text"
+          name="searchUser"
+          id="searchUser"
+          v-model="searchTerm"
+        />
+        <button type="submit" :disabled="searchTermEmpty" @click="searchUser">
+          Search
+        </button>
+      </div>
+
+      <table>
+        <tr v-for="returnedUsers in returnedUsers" v-bind:key="returnedUsers">
+          <td>first name: {{ returnedUsers.firstname }}</td>
+          <td>last name: {{ returnedUsers.lastname }}</td>
+          <td>last name: {{ returnedUsers.email }}</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
 export default {
-  name: 'app',
-  data () {
+  name: "app",
+  data() {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      firstName: "",
+      lastName: "",
+      email: "",
+      responseCodeGood: true,
+      successRegister: false,
+      searchTerm: "",
+      returnedUsers: []
+    };
+  },
+  methods: {
+    registerUser() {
+      this.responseCodeGood = true;
+      let result = axios
+        .post(
+          "http://localhost:8080/register",
+          {
+            firstName: this.firstName,
+            lastName: this.lastName,
+            email: this.email
+          },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        )
+        .then(res => {
+          this.responseCodeGood = res.status == 200;
+          if (res.status == 200) {
+            this.successRegister = true;
+            (this.firstName = ""), (this.lastName = ""), (this.email = "");
+          }
+        })
+        .catch(res => {
+          this.responseCodeGood = res.status == 200;
+        });
+    },
+    searchUser() {
+      let result = axios
+        .post(
+          "http://localhost:8080/search",
+          {
+            searchTerm: this.searchTerm
+          },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        )
+        .then(res => {
+          this.returnedUsers = [...res.data];
+          console.log(returnedUsers);
+        })
+        .catch(res => {});
+    },
+    clickInEmail() {
+      this.responseCodeGood = true;
+    }
+  },
+  computed: {
+    emailContainsAtDot() {
+      if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(this.email)) {
+        return true;
+      }
+      return false;
+    },
+    firstNameEmpty() {
+      return !this.firstName.length > 0;
+    },
+    lastNameEmpty() {
+      return !this.lastName.length > 0;
+    },
+    responseBad() {
+      return !this.responseCodeGood;
+    },
+    searchTermEmpty() {
+      return !this.searchTerm.length > 0;
     }
   }
-}
+};
 </script>
 
-<style lang="scss">
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: cornsilk;
 }
-
-h1, h2 {
-  font-weight: normal;
+.centerMe {
+  display: grid;
+  align-items: center;
+  justify-content: center;
 }
-
-ul {
-  list-style-type: none;
-  padding: 0;
+.flexMe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
-li {
-  display: inline-block;
-  margin: 0 10px;
+.red {
+  color: crimson;
 }
-
-a {
-  color: #42b983;
+.green {
+  color: green;
+}
+td {
+  padding: 15px;
+  border: 1px solid black;
 }
 </style>
